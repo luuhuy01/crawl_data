@@ -145,7 +145,7 @@ public class CrawlVtv {
                         date = df.parse(time);
 
                     } catch (ParseException ex) {
-                        Logger.getLogger(CrawlData.class.getName()).log(Level.SEVERE, null, ex);
+                        ex.printStackTrace();
                     }
 
                     // get category
@@ -219,9 +219,9 @@ public class CrawlVtv {
 
             connection.disconnect();
         } catch (MalformedURLException ex) {
-            Logger.getLogger(CrawlData.class.getName()).log(Level.SEVERE, null, ex);
+            ex.printStackTrace();
         } catch (IOException ex) {
-            Logger.getLogger(CrawlData.class.getName()).log(Level.SEVERE, null, ex);
+            ex.printStackTrace();
         }
         // trả về html của trang web
         return responseContent.toString();
