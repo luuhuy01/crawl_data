@@ -9,7 +9,8 @@ import model.News;
 
 public class main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) {    
+        //test commit
         DAO dao = new DAO();
         String[] type = {"chinh-tri.htm",
              "xa-hoi.htm",
