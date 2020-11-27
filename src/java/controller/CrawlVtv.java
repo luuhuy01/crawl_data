@@ -62,7 +62,7 @@ public class CrawlVtv {
         String urlImage = null;
         String link = null;
         String des = "nổi bật";  // gán loại thành tin nổi bật
-        
+
         //lay cac bai viet phu
         for (int i = 0; i < e1.size(); i++) {
             Elements e2 = e1.get(i).getElementsByTag("li");
@@ -110,54 +110,53 @@ public class CrawlVtv {
         Document doc = Jsoup.parse(html);
 
         ArrayList<News> listNews = new ArrayList<>();
+        String title = null;
+        String urlImage = null;
+        String link = null;
+        String category = null;
+        Date dateTime = null;
+        String des = null;
         Elements e1 = doc.getElementsByClass("tlitem");
-
         for (int i = 0; i < e1.size(); i++) {
-
+            Elements e2 = e1.get(i).children();
             //get title
-            Elements e2 = e1.get(i).getElementsByTag("h3");
-//            Elements e9 = e1.get(i).getElementsByTag("h2");
-            if (e2.size() > 0) {     //kiểm tra xem bài viết có tiêu đề không.
-                Elements e7 = e2.get(0).getElementsByTag("a");
-                String title = e7.text();
-
-                //get link bài viết
-                String href = e7.attr("href");
-                String li = "https://vtv.vn/" + href;
-
-                //get des
-                Elements e3 = e1.get(i).getElementsByClass("sapo");
-                String des = e3.text();
-
-                //get img
-                Elements e4 = e1.get(i).getElementsByTag("img");
-                String urlImage = e4.attr("src");
-
-                //get time
-                Elements e5 = e1.get(i).getElementsByClass("time");
-                Date date = null;
-                String category = null;
-                if (e5.size() > 0) {              // kiểm tra xem có class time không.
-                    Elements e6 = e5.get(0).getElementsByTag("span");
-                    String time = e6.text();
-                    DateFormat df = new SimpleDateFormat("dd/MM/yyyy");
-                    try {
-                        date = df.parse(time);
-
-                    } catch (ParseException ex) {
-                        ex.printStackTrace();
-                    }
-
-                    // get category
-                    Elements e8 = e5.get(0).getElementsByTag("a");
-                    category = e8.text();
-
+            for (int j = 0; j < e2.size(); j++) {
+                if (e2.get(j).attr("title") != "") {
+                    title = e2.get(j).attr("title");
                 }
-                News news = new News(title, urlImage, li, category, date, des);
-                listNews.add(news);
+                if (e2.get(j).attr("href") != "") {
+                    link = "https://vtv.vn/" + e2.get(j).attr("href");
+                }
+                Elements e3 = e2.get(j).getElementsByTag("img");
+                for (int k = 0; k < e3.size(); k++) {
+                    urlImage = e3.get(k).attr("src");
+                }
+                Elements e4 = e2.get(j).getElementsByTag("a");
+//                System.out.println(e4.html());
+                for (int k = 0; k < e4.size(); k++) {
+                    category = e4.get(k).attr("title");
+                }
+                Elements e5 = e2.get(j).getElementsByTag("span");
+                String time = null;
+                for (int k = 0; k < e5.size(); k++) {
+                    if (e5.get(k).attr("title") != "") {
+                        time = e5.get(k).attr("title");
+                        DateFormat df = new SimpleDateFormat("dd-MM-yyyy");
+                        try {
+                            dateTime = df.parse(time);
+                        } catch (ParseException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }
+                Elements e6 = e2.get(j).getElementsByClass("sapo");
+                for (int k = 0; k < e6.size(); k++) {
+                    des = e6.get(k).text();
+                }
             }
+            News news = new News(title, urlImage, link, category, dateTime, des);
+             listNews.add(news);
         }
-
         return listNews;
     }
 

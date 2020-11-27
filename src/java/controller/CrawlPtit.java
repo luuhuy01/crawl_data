@@ -118,7 +118,6 @@ public class CrawlPtit {
         String link = null;
         for (int i = 0; i < e2.size(); i++) {
             Elements e3 = e2.get(i).getElementsByTag("li");
-            System.out.println(e3.size());
             for(int j =0; j<e3.size(); j++){
                 Elements e4 = e3.get(j).getElementsByTag("a");
                 for(int k =0; k< e4.size(); k++){
