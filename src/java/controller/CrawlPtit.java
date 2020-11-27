@@ -14,10 +14,15 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import model.Menu;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 /**
@@ -25,6 +30,7 @@ import org.jsoup.select.Elements;
  * @author luuhu
  */
 public class CrawlPtit {
+
     private String link;
 
     public CrawlPtit() {
@@ -41,7 +47,7 @@ public class CrawlPtit {
     public void setLink(String link) {
         this.link = link;
     }
-    
+
     public String getHttp() {
         HttpURLConnection connection;
         BufferedReader reader;
@@ -49,8 +55,8 @@ public class CrawlPtit {
         StringBuffer responseContent = new StringBuffer();
 
         try {
-            // ghi file index.html
-            File file = new File("index.html");
+            // ghi file index1.html
+            File file = new File("index1.html");
             FileOutputStream fos = new FileOutputStream(file);
             OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
 
@@ -93,7 +99,7 @@ public class CrawlPtit {
         return responseContent.toString();
     }
 
-    public static String RegexHtml(String html, String regex) {
+    public String RegexHtml(String html, String regex) {
         Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE | Pattern.DOTALL);
         Matcher matcher = pattern.matcher(html);
         String match = "";
@@ -103,27 +109,26 @@ public class CrawlPtit {
         return match;
     }
 
-    public static void Try(Elements e2, int j, int a[]) {
+    public ArrayList<Menu> dataMenu(String html) {
+        Document doc = Jsoup.parse(html);
+        Element e1 = doc.getElementById("menu-main-menu");
+        Elements e2 = e1.children();
+        ArrayList<Menu> arr = new ArrayList<>();
+        String title = null;
+        String link = null;
         for (int i = 0; i < e2.size(); i++) {
-            String link = e2.get(i).attr("href");
-            Elements e4 = e2.get(i).getElementsByTag("span");
-            String title = "";
-
-            for (int k = 0; k < e4.size(); k++) {
-                title = e4.text();
+            Elements e3 = e2.get(i).getElementsByTag("li");
+            System.out.println(e3.size());
+            for(int j =0; j<e3.size(); j++){
+                Elements e4 = e3.get(j).getElementsByTag("a");
+                for(int k =0; k< e4.size(); k++){
+                     title = e4.get(k).text();
+                     link = e4.get(k).attr("href");            
+                }        
+                Menu menu = new Menu(title, link);
+                arr.add(menu);
             }
-            if (!link.isEmpty()) {
-                System.out.println("sub " + j + "; title" + ": " + title + "; Link " + ": " + link);
-                System.out.println(a[i]);
-            } else {
-                j--;
-                a[i]++;
-                Elements e5 = e2.get(i).children();
-                Try(e5, i, a);
-                j--;
-            }
-
         }
-
+        return arr;
     }
 }

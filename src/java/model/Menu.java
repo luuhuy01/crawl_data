@@ -47,5 +47,10 @@ public class Menu {
         this.url = url;
     }
 
+    @Override
+    public String toString() {
+        return "Menu{" + "id=" + id + ", name=" + name + ", url=" + url + '}';
+    }
+
     
 }

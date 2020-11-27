@@ -61,7 +61,7 @@ public class CrawlVtv {
         String title = null;
         String urlImage = null;
         String link = null;
-        String des = null;
+        String des = "nổi bật";  // gán loại thành tin nổi bật
         
         //lay cac bai viet phu
         for (int i = 0; i < e1.size(); i++) {
