@@ -7,6 +7,8 @@ import static DbUtil.OpenConnection.ps;
 import static DbUtil.OpenConnection.rs;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -17,82 +19,161 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
-import model.News;
+import model.ptit.Baidang;
+import model.ptit.Demuc;
+import model.vtv.News;
 
 public class DAO {
+
     public static final int limit = 20;
     public static Scanner sc;
+    public static int dem = 0;
 
+    // thêm news vào db
     public void addNew(News news) {
         boolean res = true;
-        news.setTitle(news.getTitle().replaceAll("[\'\"]*" ,  ""));
-        String sql = "select title from News where title like '%" + news.getTitle() + "%'";        
-        try {
-            new OpenConnection();
-            ps = con.prepareStatement(sql);
-            rs = ps.executeQuery();
-            if (rs.next()) {
-                res = false;
-            }
-        } catch (Exception ex) {
-            System.out.println(sql);
-            System.out.println(news.getTitle());
-            ex.printStackTrace();
-        } finally {
-            new CloseConnection();
-        }
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        new OpenConnection();
         if (res == true) {
             try {
-                new OpenConnection();
-                String query = " insert into News (title, urlImage, link, category, times,des) values (?, ?, ?, ?, ?,?)";
-                ps = con.prepareStatement(query);
-                ps.setString(1, news.getTitle());
-                ps.setString(2, news.getUrlImage());
-                ps.setString(3, news.getLink());
-                ps.setString(4, news.getCategory());
-                ps.setObject(5, news.getTime().toInstant().atZone(ZoneId.of("Africa/Tunis")).toLocalDate());
-                ps.setString(6, news.getDes());
-                int row = ps.executeUpdate();
-                System.out.println("them thanh cong " + row);
+                con.setAutoCommit(false);
+                if (news.getTime() != null) {
+
+                    String query = " insert into News (title, urlImage, link, category, times, des) values ( ?, ?, ?, ?, ?,?)";
+                    ps = con.prepareStatement(query);
+                    ps.setString(1, news.getTitle());
+                    ps.setString(2, news.getUrlImage());
+                    ps.setString(3, news.getLink());
+                    ps.setString(4, news.getCategory());
+                    ps.setString(5, sdf.format(news.getTime()));
+                    ps.setString(6, news.getDes());
+                    ps.executeUpdate();
+                    dem++;
+                    System.out.println("them thanh cong so tin tuc: " + dem);
+                } else {
+                    new OpenConnection();
+                    String query = " insert into News (title, urlImage, link, category, des) values ( ?, ?, ?, ?,?)";
+                    ps = con.prepareStatement(query);
+                    ps.setString(1, news.getTitle());
+                    ps.setString(2, news.getUrlImage());
+                    ps.setString(3, news.getLink());
+                    ps.setString(4, news.getCategory());
+                    ps.setString(5, news.getDes());
+                    ps.executeUpdate();
+                    dem++;
+                    System.out.println("them thanh cong so tin tuc: " + dem);
+                }
+                con.commit();
             } catch (Exception ex) {
-                ex.printStackTrace();
+                //               ex.printStackTrace();
+                try {
+                    con.rollback();
+                } catch (SQLException ex1) {
+                    ex1.printStackTrace();
+                }
             } finally {
                 new CloseConnection();
             }
         }
+
     }
-    
-   public List<News> findBy(HttpServletRequest request){
+
+    //thêm danh mục và bài đăng vào db 
+    public void addDemuc(Demuc demuc) {
+        try {
+            new OpenConnection();
+            con.setAutoCommit(false);
+            String query = " insert into demuc (name, link) values ( ?, ?)";
+            String sqlBaidang = "insert into baidang(idDemuc, tieude, link) values (?,?,?)";
+            ps = con.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, demuc.getName());
+            ps.setString(2, demuc.getLink());
+            ps.executeUpdate();
+            ResultSet generatedKeys = ps.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                for (int i = 0; i < demuc.getBaidang().size(); i++) {
+                    ps = con.prepareStatement(sqlBaidang, Statement.RETURN_GENERATED_KEYS);
+                    ps.setInt(1, generatedKeys.getInt(1));
+                    ps.setString(2, demuc.getBaidang().get(i).getTieude());
+                    ps.setString(3, demuc.getBaidang().get(i).getLink());
+                    ps.executeUpdate();
+                }
+            }
+            con.commit();
+        } catch (Exception ex) {
+            try {
+                con.rollback();
+            } catch (SQLException ex1) {
+                ex1.printStackTrace();
+            }
+            String sqlBaidang = "insert into baidang(idDemuc, tieude, link) values (?,?,?)";
+            String sqlId = "select id from demuc where name = ?";
+
+            try {
+                ps = con.prepareStatement(sqlId);
+                ps.setString(1, demuc.getName());
+                ResultSet r = ps.executeQuery();
+                if (r.next()) {
+                    for (int i = 0; i < demuc.getBaidang().size(); i++) {
+                        ps = con.prepareStatement(sqlBaidang);
+                        ps.setInt(1, r.getInt(1));
+                        ps.setString(2, demuc.getBaidang().get(i).getTieude());
+                        ps.setString(3, demuc.getBaidang().get(i).getLink());
+                        ps.executeUpdate();
+                        System.out.println("update");
+                    }
+                }
+                con.commit();
+            } catch (SQLException ex1) {
+                //               ex1.printStackTrace();
+                try {
+                    con.rollback();
+                } catch (SQLException ex2) {
+                    ex2.printStackTrace();
+                }
+            }
+
+            //           ex.printStackTrace();
+        } finally {
+            new CloseConnection();
+        }
+
+    }
+
+    // tìm kiém theo loại, tiêu đề, time
+    public List<News> findBy(HttpServletRequest request) {
         new OpenConnection();
-//        List<String> keys = new ArrayList<String>() {{
-//            add("id");
-//            add("title");
-//            add("des");
-//            add("category");
-//            add("urlImage");
-//            add("times");
-//            add("link");
-//        }};
-        String sql = "select * from News where category like ? AND des like ?";
+        String sql = "select * from News where category like ? AND title like ? AND times like ?";
         try {
             ps = con.prepareStatement(sql);
             String category = request.getParameter("category");
-            String des = request.getParameter("des");
-            if (category != null)
+            String title = request.getParameter("title");
+            String time = request.getParameter("date");
+            if (category != null) {
                 ps.setString(1, "%" + category + "%");
-            else
+            } else {
                 ps.setString(1, "%%");
-            if (des != null)
-                ps.setString(2, "%" + des + "%");
-            else
+            }
+            if (title != null) {
+                ps.setString(2, "%" + title + "%");
+            } else {
                 ps.setString(2, "%%");
+            }
+            if (time != null) {
+                ps.setString(3, "%" + time + "%");
+            } else {
+                ps.setString(3, "%%");
+            }
             return getNews(ps);
-        }  catch (Exception ex) {
+        } catch (Exception ex) {
+            //           ex.printStackTrace();
         }
         return new ArrayList<>();
-   }
-   
+    }
+
     public List<News> getNews(PreparedStatement stmt) {
         ArrayList<News> listNews = new ArrayList<>();
         try {
@@ -109,175 +190,124 @@ public class DAO {
                 listNews.add(news);
             }
         } catch (Exception ex) {
-                ex.printStackTrace();
+            ex.printStackTrace();
         } finally {
             new CloseConnection();
         }
         return listNews;
     }
 
-    public void findByTitle() {
-        String tmp = sc.nextLine();
-        String sql = "select * from News where title like %1";
-        this.truyVan(sql,1);
-    }
-
-    public String findByCategory() {
-        sc = new Scanner(System.in, "UTF-8");
-        String tmp = sc.nextLine();
-        String sql = "select * from News where category like '%1%'";
-        this.truyVan(sql,1);
-        return "1";
-    }
-
-    public void findByDes() {
-        sc = new Scanner(System.in, "UTF-8");
-        String tmp = sc.nextLine();
-        String sql = "select * from News where des like '%" + tmp + "%'";
-        this.truyVan(sql,1);
-    }
-
-    public void findByTimes() {
-        sc = new Scanner(System.in);
-        String tmp = sc.nextLine();
-        if (this.validateJavaDate(tmp)) {
-            String sql = "select * from News where times between '" + tmp + " 00:00:00' and '" + tmp + " 23:59:59'";
-            this.truyVan(sql,1);
-        } else {
-            System.out.println("Moi nhap lai voi dinh dang yyyy-MM-dd:");
-            this.findByTimes();
-        }
-    }
-
-    public void findObject() {
-        sc = new Scanner(System.in);
-        News n = new News();
-        System.out.println("nhap vao tieu de:");
-        n.setTitle(sc.nextLine());
-        System.out.println("nhap vao ten anh:");
-        n.setUrlImage(sc.nextLine());
-        System.out.println("nhap vao link:");
-        n.setLink(sc.nextLine());
-        System.out.println("nhap vao the loai:");
-        n.setCategory(sc.nextLine());
-        System.out.println("nhap vao thoi gian:");
-        String date = sc.nextLine();
+    // lấy ngày thêm select time
+    public ArrayList<String> getTime() {
+        new OpenConnection();
+        ArrayList<String> arr = new ArrayList<>();
+        String sqlTime = "select distinct times from news";
         try {
-            if (this.validateJavaDate(date) == true) {
-                n.setTime(new SimpleDateFormat("yyyy-MM-dd").parse(date));
-            } else {
-                System.out.println("sai dinh dang yyyy-MM-dd");
+            ps = con.prepareStatement(sqlTime);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                arr.add(rs.getString(1));
             }
-        } catch (Exception ex) {
+        } catch (SQLException ex) {
             ex.printStackTrace();
         }
-        System.out.println("nhap vao mieu ta:");
-        n.setDes(sc.nextLine());
-        StringBuffer where = new StringBuffer("  where 1 = 1 ");
-        boolean coWhere = false;
-        if (!n.getTitle().isEmpty()) {
-            where.append(" and title like '%" + n.getTitle() + "%'");
-            coWhere = true;
-        }
-        if (!n.getUrlImage().isEmpty()) {
-            where.append(" and urlImage like '%" + n.getUrlImage() + "%'");
-            coWhere = true;
-        }
-        if (!n.getLink().isEmpty()) {
-            where.append(" and link like '%" + n.getLink() + "%'");
-            coWhere = true;
-        }
-        if (!n.getCategory().isEmpty()) {
-            where.append(" and category like '%" + n.getCategory() + "%'");
-            coWhere = true;
-        }
-        if (n.getTime() != null) {
-            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            String strDate = dateFormat.format(n.getTime());
-            where.append(" and times between '" + strDate + " 00:00:00' and '" + strDate + " 23:59:59'");
-            System.out.println(n.getTime().toString());
-            coWhere = true;
-        }
-        if (!n.getDes().isEmpty()) {
-            where.append(" and des like '%" + n.getDes() + "%'");
-            coWhere = true;
-        }
-        String hql = "select * from News ";
-        if (coWhere) {
-            hql = hql + where;
-        }
-        this.truyVan(hql,1);
+        return arr;
     }
 
-    public void delete(int id) {
-        String sql = "DELETE FROM News where id=" + id;
-        if (this.truyVan(sql,2) == true) {
-            System.out.println("xoa thanh cong!");
-        } else {
-            System.out.println("xoa KHONG thanh cong....");
-        }
-
-    }
-
-    public void update(News n) {
-        String sql = "UPDATE News SET title ='" + n.getTitle() + "', urlImage='" + n.getUrlImage()
-                + "', link ='" + n.getLink() + "', category='" + n.getCategory() + "', des='" + n.getDes() + "'";
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-        String strDate = dateFormat.format(n.getTime());
-        sql = sql + ",times = '"+strDate+"' where ID="+n.getId();
-        if (this.truyVan(sql,2) == true) {
-            System.out.println("cap nhat thanh cong!");
-        } else {
-            System.out.println("cap nhat KHONG thanh cong....");
-        }
-    }
-
-    private boolean truyVan(String sql, int t) {
-        boolean check = false;
+    // lấy loại thêm vào select category
+    public ArrayList<String> getCategory() {
+        new OpenConnection();
+        ArrayList<String> arr = new ArrayList<>();
+        String sqlTime = "select distinct category from news";
         try {
-            new OpenConnection();
-            ps = con.prepareStatement(sql);
-            if (t == 1) {
-                rs = ps.executeQuery();
-                News n = new News();
-                while (rs.next()) {
-                    n.setId(rs.getInt(1));
-                    n.setTitle(rs.getString(2));
-                    n.setUrlImage(rs.getString(3));
-                    n.setLink(rs.getString(4));
-                    n.setCategory(rs.getString(5));
-                    n.setTime(rs.getDate(6));
-                    n.setDes(rs.getString(7));
-                    System.out.println(n);
-                    check = true;
-                }
+            ps = con.prepareStatement(sqlTime);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                arr.add(rs.getString(1));
             }
-            else {
-                int row = ps.executeUpdate();
-                System.out.println("so "+row+" row da dc update");
-                check = true;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return arr;
+    }
+
+    // lấy Dề mục và bài đăng
+    public ArrayList<Demuc> getDemucBaiDang() {
+        ArrayList<Demuc> arrDemuc = new ArrayList<>();
+        ArrayList<Baidang> arrBaidang = new ArrayList<>();
+        String sqlDemuc = "select * from demuc";
+        String sqlBaidang = "select * from baidang where idDemuc = ?";
+        try {
+            ps = con.prepareStatement(sqlDemuc);
+            ResultSet rs = null;
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                int id = rs.getInt(1);
+                String name = rs.getString(2);
+                String link = rs.getString(3);
+                Demuc demuc = new Demuc(id, name, link);
+                arrDemuc.add(demuc);
+            }
+
+            for (int i = 0; i < arrDemuc.size(); i++) {
+                ps = con.prepareStatement(sqlBaidang);
+                ps.setInt(arrDemuc.get(i).getId(), 1);
+                rs = ps.executeQuery();
+                while (rs.next()) {
+                    int id = rs.getInt(1);
+                    String tieude = rs.getString(2);
+                    String link = rs.getString(3);
+                    Baidang baidang= new Baidang(id, tieude, link);
+                    arrBaidang.add(baidang);                    
+                }
+                arrDemuc.get(i).setBaidang(arrBaidang);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return arrDemuc;
+    }
+   
+    // lấy toàn bộ bài dăng trong danh mục
+   public ArrayList<Baidang> findByIddanhmuc(HttpServletRequest request) {
+        new OpenConnection();
+        
+        String name = request.getParameter("danhmuc");
+        String sqlDanhmuc = "select id from danhmuc where name = ?";
+        
+        String sqlBaidang = "select * from baidang where idDanhmuc = ?";
+        try {
+            ps= con.prepareStatement(sqlDanhmuc);
+            ps.setString(1, name);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()){
+                int id = rs.getInt(1);
+                ps = con.prepareStatement(sqlBaidang);
+                ps.setInt(1, id);
+                return getBaidang(ps);
+            }            
+        } catch (Exception ex) {
+                ex.printStackTrace();
+        }
+        return new ArrayList<>();
+    }
+      public ArrayList<Baidang> getBaidang(PreparedStatement stmt) {
+        ArrayList<Baidang> arrBaidang = new ArrayList<>();
+        try {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Baidang baidang = new Baidang();
+                baidang.setId(rs.getInt(1));
+                baidang.setTieude(rs.getString(2));
+                baidang.setLink(rs.getString(3));
+                arrBaidang.add(baidang);
             }
         } catch (Exception ex) {
-            check = false;
             ex.printStackTrace();
         } finally {
             new CloseConnection();
         }
-        return check;
+        return arrBaidang;
     }
 
-    boolean validateJavaDate(String strDate) {
-        if (strDate.trim().equals("")) {
-            return true;
-        } else {
-            SimpleDateFormat sdfrmt = new SimpleDateFormat("yyyy-MM-dd");
-            sdfrmt.setLenient(false);
-            try {
-                Date javaDate = sdfrmt.parse(strDate);
-            } catch (ParseException e) {
-                return false;
-            }
-            return true;
-        }
-    }
 }

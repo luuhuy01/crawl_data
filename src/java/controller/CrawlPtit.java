@@ -5,6 +5,7 @@
  */
 package controller;
 
+import com.sun.org.apache.bcel.internal.generic.AALOAD;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -19,7 +20,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import model.Menu;
+import model.ptit.Baidang;
+import model.ptit.Demuc;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -55,10 +58,10 @@ public class CrawlPtit {
         StringBuffer responseContent = new StringBuffer();
 
         try {
-            // ghi file index1.html
-            File file = new File("index1.html");
-            FileOutputStream fos = new FileOutputStream(file);
-            OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+//            // ghi file index1.html
+//            File file = new File("index1.html");
+//            FileOutputStream fos = new FileOutputStream(file);
+//            OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
 
             // dùng httpURLConnection gửi request để lấy về html
             URL url = new URL(link);
@@ -67,11 +70,7 @@ public class CrawlPtit {
             connection.setUseCaches(false);
             connection.setDoOutput(true);
             connection.setDoInput(true);
-
-            connection.setConnectTimeout(5000);
             connection.setReadTimeout(5000);
-
-            //      login bằng cookie
             int status = connection.getResponseCode();
             System.out.println(status);
 
@@ -81,15 +80,14 @@ public class CrawlPtit {
             reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             while ((line = reader.readLine()) != null) {
                 responseContent.append(line);
-                osw.write(line);
+//                osw.write(line);
             }
             reader.close();
 
             // System.out.println(responseContent.toString());
             // sử dụng jsoup để query html 
-            osw.close();
-            fos.close();
-
+//            osw.close();
+//            fos.close();
             connection.disconnect();
         } catch (MalformedURLException ex) {
             ex.printStackTrace();
@@ -99,35 +97,44 @@ public class CrawlPtit {
         return responseContent.toString();
     }
 
-    public String RegexHtml(String html, String regex) {
-        Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE | Pattern.DOTALL);
-        Matcher matcher = pattern.matcher(html);
-        String match = "";
-        while (matcher.find()) {
-            match = matcher.group(0);
+    public ArrayList<Baidang> dataBaidang(String html) {
+        ArrayList<Baidang> arrBd = new ArrayList<>();
+        String tieude = "";
+        String link = "";
+        Document doc = Jsoup.parse(html);
+        Elements e1 = doc.getElementsByClass("entry-title");
+        for (int i = 0; i < e1.size(); i++) {
+            Elements e2 = e1.get(i).getElementsByTag("a");
+            for (int j = 0; j < e2.size(); j++) {
+                tieude = e2.get(j).text();
+                link = e2.get(j).attr("href");
+
+            }
+            Baidang baidang = new Baidang(tieude, link);
+            arrBd.add(baidang);
         }
-        return match;
+        return arrBd;
     }
 
-    public ArrayList<Menu> dataMenu(String html) {
-        Document doc = Jsoup.parse(html);
-        Element e1 = doc.getElementById("menu-main-menu");
-        Elements e2 = e1.children();
-        ArrayList<Menu> arr = new ArrayList<>();
-        String title = null;
+    public ArrayList<Demuc> dataDemuc(String html) {
+        ArrayList<Demuc> arrDm = new ArrayList<>();
+        String id = null;
+        String name = null;
         String link = null;
-        for (int i = 0; i < e2.size(); i++) {
-            Elements e3 = e2.get(i).getElementsByTag("li");
-            for(int j =0; j<e3.size(); j++){
-                Elements e4 = e3.get(j).getElementsByTag("a");
-                for(int k =0; k< e4.size(); k++){
-                     title = e4.get(k).text();
-                     link = e4.get(k).attr("href");            
-                }        
-                Menu menu = new Menu(title, link);
-                arr.add(menu);
+        Document doc = Jsoup.parse(html);
+        Elements e1 = doc.getElementsByClass("column_attr"); //lấy toàn bộ đề mục ở class
+        for (int i = 0; i < e1.size(); i++) {
+            Elements e2 = e1.get(i).getElementsByTag("a");
+            for (int j = 0; j < e2.size(); j++) {
+                name = e2.get(j).text();
+                link = e2.get(j).attr("href");
+                if (name != "") {
+                    Demuc demuc = new Demuc(name, link);
+                    System.out.println(demuc);
+                    arrDm.add(demuc);
+                }
             }
         }
-        return arr;
+        return arrDm;
     }
 }

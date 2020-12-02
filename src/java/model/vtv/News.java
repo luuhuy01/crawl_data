@@ -1,4 +1,4 @@
-package model;
+package model.vtv;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -16,6 +16,16 @@ public class News implements Serializable {
     }
 
     public News(String title, String urlImage, String link, String category, Date time, String des) {
+        this.title = title;
+        this.urlImage = urlImage;
+        this.link = link;
+        this.category = category;
+        this.time = time;
+        this.des = des;
+    }
+
+    public News(int id, String title, String urlImage, String link, String category, Date time, String des) {
+        this.id = id;
         this.title = title;
         this.urlImage = urlImage;
         this.link = link;

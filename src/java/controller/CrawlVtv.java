@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import model.News;
+import model.vtv.News;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -59,14 +59,16 @@ public class CrawlVtv {
         Elements e1 = doc.getElementsByClass("noibat_home");
 
         String title = null;
-        String urlImage = null;
-        String link = null;
-        String des = "nổi bật";  // gán loại thành tin nổi bật
 
+        String link = null;
+        Date date = new Date();
+        String des = null;
+        String catagory = "nổi bật"; // gán loại thành tin nổi bật
         //lay cac bai viet phu
         for (int i = 0; i < e1.size(); i++) {
             Elements e2 = e1.get(i).getElementsByTag("li");
             for (int j = 0; j < e2.size(); j++) {
+                String urlImage = null;
                 title = e2.get(j).text();
                 Elements e3 = e2.get(j).getElementsByTag("a");
                 for (int k = 0; k < e3.size(); k++) {
@@ -77,13 +79,14 @@ public class CrawlVtv {
                         urlImage = e4.get(n).attr("src");
                     }
                 }
-                News news = new News(title, urlImage, link, null, null, null);
+                News news = new News(title, urlImage, link, catagory, date, null);
                 listNews.add(news);
 
             }
             // lay bai viet chinh avatar
             Elements e5 = e1.get(i).getElementsByClass("noibat1 equalheight");
             for (int j = 0; j < e5.size(); j++) {
+                String urlImage = null;
                 Elements e6 = e5.get(j).getElementsByTag("a");
                 for (int k = 0; k < e6.size(); k++) {
                     title = e6.get(j).attr("title");
@@ -97,7 +100,7 @@ public class CrawlVtv {
                 for (int n = 0; n < e8.size(); n++) {
                     des = e8.text();
                 }
-                News news = new News(title, urlImage, link, null, null, des);
+                News news = new News(title, urlImage, link, catagory, date, des);
                 listNews.add(news);
             }
 
@@ -110,14 +113,17 @@ public class CrawlVtv {
         Document doc = Jsoup.parse(html);
 
         ArrayList<News> listNews = new ArrayList<>();
+
+        String des = null;
         String title = null;
         String urlImage = null;
         String link = null;
         String category = null;
         Date dateTime = null;
-        String des = null;
+
         Elements e1 = doc.getElementsByClass("tlitem");
         for (int i = 0; i < e1.size(); i++) {
+
             Elements e2 = e1.get(i).children();
             //get title
             for (int j = 0; j < e2.size(); j++) {
@@ -133,15 +139,19 @@ public class CrawlVtv {
                 }
                 Elements e4 = e2.get(j).getElementsByTag("a");
 //                System.out.println(e4.html());
-                for (int k = 0; k < e4.size(); k++) {
-                    category = e4.get(k).attr("title");
+                Elements cate = e2.get(j).getElementsByClass("time");
+                for (int k = 0; k < cate.size(); k++) {
+                    Elements cate1 = cate.get(k).getElementsByTag("a");
+                    for(int n= 0; n<cate1.size(); n++){
+                        category = e4.get(n).text();
+                    }                   
                 }
                 Elements e5 = e2.get(j).getElementsByTag("span");
                 String time = null;
                 for (int k = 0; k < e5.size(); k++) {
                     if (e5.get(k).attr("title") != "") {
                         time = e5.get(k).attr("title");
-                        DateFormat df = new SimpleDateFormat("dd-MM-yyyy");
+                        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
                         try {
                             dateTime = df.parse(time);
                         } catch (ParseException ex) {
@@ -155,7 +165,7 @@ public class CrawlVtv {
                 }
             }
             News news = new News(title, urlImage, link, category, dateTime, des);
-             listNews.add(news);
+            listNews.add(news);
         }
         return listNews;
     }
@@ -168,24 +178,21 @@ public class CrawlVtv {
         StringBuffer responseContent = new StringBuffer();
 
         try {
-            // ghi file index.html
-            File file = new File("index.html");
-            FileOutputStream fos = new FileOutputStream(file);
-            OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+//            // ghi file index.html
+//            File file = new File("index.html");
+//            FileOutputStream fos = new FileOutputStream(file);
+//            OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
 
             // dùng httpURLConnection gửi request để lấy về html
             URL url = new URL(this.link);
             connection = (HttpURLConnection) url.openConnection();
 
             connection.setRequestMethod("GET");
-
             connection.setDoOutput(true);
-
+            connection.setReadTimeout(5000);
             connection.setRequestProperty("Content-Type", "text/plain; charset=utf-8");
             connection.setRequestProperty("Client-Platform", "android");
             connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4302.0 Safari/537.36");
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
 
 //            login bằng cookie
 //            String cookie = "sw_version=1; _ga=GA1.2.2120110320.1604506591; _gid=GA1.2.1176469965.1604506591; orig_aid=7uw5nuy4wc16crdz.1604506590; _pk_ref=%5B%22%22%2C%22%22%2C1604506591%2C%22https%3A%2F%2Fwww.google.com%2F%22%5D; _pk_ses=*; fosp_location=32; fosp_country=vn; fosp_loc=32-3-vn; fosp_gender=3; fosp_isp=12; fosp_location_zone=3; login_system=1; __gads=ID=90b1b6d91831ff26:T=1604506591:S=ALNI_MYumeSg1ofnKWrpe7XKtEpA7I-t8Q; SL_GWPT_Show_Hide_tmp=1; SL_wptGlobTipTmp=1; _ym_uid=1604506593255132918; _ym_d=1604506593; _ym_isad=2; _ym_visorc_62978707=b; __utmz=139601012.1604506691.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); __utmc=139601012; __utma=139601012.2120110320.1604506591.1604506691.1604506691.1; __utmb=139601012.2.10.1604506691; smartbanner=hide; device_env=4; device_env_real=4; cdevice=4; myvne_onetap=1; fosp_aid=1061582061; fosp_ptoken=d2f2cd8a80ff65bd2855785bff513c7b; myvne_user_id=1061582061; display_cpd=9; _pk_cvar=%7B%224%22%3A%5B%22fosp_aid%22%2C%221061582061%22%5D%2C%227%22%3A%5B%22fosp_aid_bk%22%2C%221061582061%22%5D%2C%228%22%3A%5B%22eatv%22%2C%2228-03-2014%22%5D%2C%229%22%3A%5B%22fosp_session%22%2C%221yzkzk1tzr1vzm21zk21zlzkziznznznzdzizlzjznzmzjzlzmzqzizdzkzdzizlzjznzmzjzlzkzqzlzdzizlzjznzmzjzlzkzrzhzdzizdzjzdzjzdzezdzg%22%5D%2C%2210%22%3A%5B%22fosp_gender%22%2C%220%22%5D%7D; _pk_id=0da4cdbdfa2fecd1.1604506591.1.1604506812.1604506591.";
@@ -201,7 +208,7 @@ public class CrawlVtv {
                 reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
                 while ((line = reader.readLine()) != null) {
                     responseContent.append(line);
-                    osw.write(line);
+//                    osw.write(line);
                 }
                 reader.close();
 
@@ -209,12 +216,12 @@ public class CrawlVtv {
                 reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 while ((line = reader.readLine()) != null) {
                     responseContent.append(line);
-                    osw.write(line);
+//                    osw.write(line);
                 }
                 reader.close();
             }
-            osw.close();
-            fos.close();
+//            osw.close();
+//            fos.close();
 
             connection.disconnect();
         } catch (MalformedURLException ex) {
