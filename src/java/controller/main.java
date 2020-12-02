@@ -29,7 +29,7 @@ public class main {
             dao.addNew(arrMN.get(i));
         }
         // xu ly ajax https://vtv.vn/timelinehome/trang-1.htm
-        int dem = 0;
+
         for (int j = 1; j <= 15; j++) {
             String urlAjax = urlVtv + "timelinehome/trang-" + j + ".htm";
             CrawlVtv crawlAjax = new CrawlVtv(urlAjax);

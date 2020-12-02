@@ -33,7 +33,7 @@
                 <option value="<%=arrTime.get(i)%>"><%=arrTime.get(i)%></option>
                 <% }%>
             </select>
-            <input type="submit" class="btn btn-primary" value="submit" >
+            <input type="submit" class="btn btn-primary" value="Tìm kiếm" >
         </form>
         <table border="1" cellpadding="2" cellspacing="0" style="table-layout:fixed;">
             <tr>
