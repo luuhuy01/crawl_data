@@ -130,7 +130,6 @@ public class CrawlPtit {
                 link = e2.get(j).attr("href");
                 if (name != "") {
                     Demuc demuc = new Demuc(name, link);
-                    System.out.println(demuc);
                     arrDm.add(demuc);
                 }
             }
